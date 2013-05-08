@@ -1,0 +1,17 @@
+{
+    "gallery-model-sync-local": {
+        "supersedes": [
+            ""
+        ],
+        "skinnable": "false",
+        "requires": [
+            "model",
+            "model-list",
+            "io-base",
+            "json-stringify"
+        ],
+        "optional": [
+            ""
+        ]
+    }
+}

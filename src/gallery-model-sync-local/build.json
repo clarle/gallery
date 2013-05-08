@@ -1,0 +1,11 @@
+{
+    "name": "gallery-model-sync-local",
+    "builds": {
+        "gallery-model-sync-local": {
+            "skinnable": "false",
+            "jsfiles": [
+                "model-sync-local.js"
+            ]
+        }
+    }
+}

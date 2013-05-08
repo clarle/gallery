@@ -1,0 +1,11 @@
+{
+    "name"       : "gallery-model-sync-local",
+    "displayName": "Gallery: model-sync-local",
+    "description": "An extension which provides a sync implementation through locally stored\\nkey value pairs, either through the HTML localStorage API or falling back\\nonto an in-memory cache, that can be mixed into a Model or ModelList subclass.",
+    "author"     : [ "clarle" ],
+    "use"        : [ "gallery-model-sync-local" ],
+
+    "tags": [ "gallery" ],
+
+    "examples": []
+}

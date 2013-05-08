@@ -1,0 +1,42 @@
+<div class="intro">
+    <p>
+    An extension which provides a sync implementation through locally stored
+key value pairs, either through the HTML localStorage API or falling back
+onto an in-memory cache, that can be mixed into a Model or ModelList subclass.
+    </p>
+</div>
+
+{{>getting-started}}
+
+<h2>Description</h2>
+
+<p>An extension which provides a sync implementation through locally stored<br>
+<br>
+key value pairs, either through the HTML localStorage API or falling back<br>
+<br>
+onto an in-memory cache, that can be mixed into a Model or ModelList subclass.<br>
+<br>
+<br>
+<br>
+A group of Models/ModelLists is serialized in localStorage by either its <br>
+<br>
+class name, or a specified 'root' that is provided. <br>
+</p>
+
+```
+var Todo = Y.Base.create('todo', Y.Model, [Y.ModelSync.Local], {
+        // Set up the root localStorage key we save our Model data in.
+        root: 'todos-yui',
+
+        // Toggle the completed state of the Todo.
+        toggle: function () {
+            this.save({completed: !this.get('completed')});
+        },
+
+        // Destroy this Todo and remove it from localStorage.
+        clear: function () {
+            this.destroy({remove: true});
+        }
+ }
+```
+
