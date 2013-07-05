@@ -1,7 +1,9 @@
-=YUI Gallery Modules, by @clarle=
+YUI Gallery Modules, by @clarle
+===============================
 
-==Available modules==
+Available modules
+-----------------
 
-===ModelSync.Local===
+### ModelSync.Local
 
-===ModelSync.Socket===
+### ModelSync.Socket
