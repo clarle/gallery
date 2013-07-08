@@ -1,7 +1,7 @@
 {
     "name"       : "gallery-view-bind-datastick",
     "displayName": "Gallery: gallery-view-bind-datastick",
-    "description": "*Summary Goes Here*",
+    "description": "An unobtrusive data-binding mixin for Y.View",
     "author"     : [ "clarle" ],
     "use"        : [ "gallery-view-bind-datastick" ],
 

@@ -1,7 +1,7 @@
 {
     "gallery-view-bind-datastick": {
         "requires": [
-            "yui-base"
+            "view"
         ]
     }
 }
