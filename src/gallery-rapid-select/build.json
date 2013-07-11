@@ -1,0 +1,10 @@
+{
+    "name": "gallery-rapid-select",
+    "builds": {
+        "gallery-rapid-select": {
+            "jsfiles": [
+                "js/gallery-rapid-select.js"
+            ]
+        }
+    }
+}

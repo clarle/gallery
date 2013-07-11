@@ -1,0 +1,11 @@
+{
+    "name"       : "gallery-rapid-select",
+    "displayName": "Gallery: gallery-rapid-select",
+    "description": "*Summary Goes Here*",
+    "author"     : [ "clarle" ],
+    "use"        : [ "gallery-rapid-select" ],
+
+    "tags": [ "gallery" ],
+
+    "examples": []
+}

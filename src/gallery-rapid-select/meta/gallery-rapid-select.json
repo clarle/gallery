@@ -1,0 +1,9 @@
+{
+    "gallery-rapid-select": {
+        "requires": [
+            "autocomplete",
+            "autocomplete-filters",
+            "autocomplete-highlighters"
+        ]
+    }
+}
