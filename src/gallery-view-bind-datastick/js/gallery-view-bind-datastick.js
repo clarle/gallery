@@ -180,7 +180,7 @@ var getConfiguration = function($el, binding) {
         getVal: function($el, e, opts) { return $el[opts.updateMethod](); }
     }];
     Y.Array.each(DataStick._handlers, function(handler) {
-        if (Y.Selector.test($el, handler.selector)) {
+        if ($el.test(handler.selector)) {
             handlers.push(handler);
         }
     });
@@ -196,17 +196,75 @@ var initializeAttributes = function(view, $el, config, model, modelAttr) {
                  'defer', 'disabled', 'hidden', 'loop', 'multiple', 'open',
                  'readonly', 'required', 'scoped', 'selected'];
 
-
+    Y.Array.each(config.attributes || [], function(attrConfig) {
+        var lastClass = '',
+            observed = attrConfig.observe || (attrConfig.observe = modelAttr),
+            updateAttr = function() {
+                var updateType = Y.Array.indexOf(props, attrConfig.name, true) 
+            };
+    });
 }
 
 var initializeVisible = function(view, $el, config, model, modelAttr) {
+    if (config.visible == null) {
+        return;
+    }
 
-}
+    var visibleCb = function() {
+        var visible = config.visible,
+            visibleFn = config.visibleFn,
+            val = getAttr(model, modelAttr, config, view),
+            isVisible = !!val;
+
+        if (Y.Lang.isFunction(visible) || Y.Lang.isString(visible)) {
+            isVisible = applyViewFn(view, visible, val, config);
+        }
+
+        if (visibleFn) {
+            applyViewFn(view, visibleFn, $el, isVisible, config);
+        } else {
+            if (isVisible) {
+                $el.show();
+            } else {
+                $el.hide();
+            }
+        }
+    };
+
+    Y.Array.each(Y.Array.flatten([modelAttr]), function(attr) {
+        observeModelEvent(model, view, attr + 'Change', visibleCb);
+    });
+    visibleCb();
+};
 
 var updateViewBindEl = function(view, $el, config, val, model, isInitializing) {
+    if (!evaluateBoolean(view, config.updateView, val, config)) {
+        return;
+    }
 
-}
+    config.update.call(view, $el, val, model, config);
 
-DataStick.addHandler([]);
+    if (!isInitializing) {
+        applyViewFn(view, config.afterUpdate, $el, val, config);
+    }
+};
+
+DataStick.addHandler([{
+    selector: '[contenteditable="true"]',
+    updateMethod: 'html',
+    events: ['keyup', 'change', 'paste', 'cut']
+}, {
+    selector: 'input',
+    events: ['keyup', 'change', 'paste', 'cut'],
+    update: function($el, val) { $el.set('value', val); },
+    getVal: function($el) {
+        var val = $el.get('value');
+        if ($el.test('[type="number"]')) {
+            return val == null ? val : Number(val);
+        } else {
+            return val;
+        }
+    }
+}]);
 
 Y.namespace('DataBind').Stick = DataStick;
