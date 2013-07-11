@@ -8,7 +8,7 @@ DataStick.addHandler = function(handlers) {
             updateModel: true,
             updateView: true,
             updateMethod: 'text'
-        }, handler);
+        }, handler, true);
     });
 
     this._handlers = this._handlers.concat(handlers);
@@ -36,8 +36,9 @@ DataStick.prototype = {
 
     bindAttrs: function(optionalModel, optionalBindings) {
         var self = this,
-            model = optionalModel || this.model,
-            namespace = 'stick:' + model.get('clientId'),
+            model = optionalModel || this.get('model');
+
+        var namespace = 'stick:' + model.get('clientId'),
             bindings = optionalBindings || this.bindings || {};
 
         if (!this._modelBindings) {
@@ -57,7 +58,7 @@ DataStick.prototype = {
                 container = Y.NodeList(self.get('container'));
                 selector = '';
             }
-                
+
             if (container.isEmpty()) {
                 return;
             }
@@ -70,7 +71,7 @@ DataStick.prototype = {
 
             modelAttr = config.observe;
 
-            options = Y.mix({ bindKey: bindKey}, config.setOptions || {});
+            options = Y.mix({ bindKey: bindKey}, config.setOptions || {}, true);
 
             initializeAttributes(self, container, config, model, modelAttr);
 
@@ -80,12 +81,11 @@ DataStick.prototype = {
                 Y.Array.each(config.events || [], function (type) {
                     var event = type + namespace,
                         method = function(event) {
-                        if (evaluateBoolean(self, config.updateModel, 
-                                            val, config)) {
-                            setAttr(model, modelAttr, val, options,
-                                    self, config);
-                        }
-                    };
+                            var val = config.getVal.call(self, $el, event, config);
+                            if (evaluateBoolean(self, config.updateModel, val, config)) {
+                                setAttr(model, modelAttr, val, options, self, config);
+                            }
+                        };
 
                     if (selector === '') {
                         self.get('container').on(event, method);
@@ -96,11 +96,10 @@ DataStick.prototype = {
 
                 Y.Array.each(Y.Array.flatten([modelAttr]), function (attr) {
                     observeModelEvent(model, self, attr + 'Change', 
-                        function(model, val, options) {
-                            if (options == null || options.bindKey != bindKey) {
-                                updateViewBindEl(self, container,
-                                    getAttr(model, modelAttr, config, self),
-                                    model);
+                        function(e) {
+                            if (e.bindKey != bindKey) {
+                                var model = e.currentTarget;
+                                updateViewBindEl(self, container, config, getAttr(model, modelAttr, config, self, e), model);
                             }
                         });
                 });
@@ -133,8 +132,7 @@ var evaluatePath = function(obj, path) {
 
 var applyViewFn = function(view, fn) {
     if (fn) {
-        return (Y.Lang.isString(fn) ? view[fn] : fn).apply(view, 
-                Y.Array(arguments, 2));
+        return (Y.Lang.isString(fn) ? view[fn] : fn).apply(view, Y.Array(arguments, 2));
     }
 };
 
@@ -154,6 +152,15 @@ var evaluateBoolean = function(view, reference) {
     return false;
 };
 
+var observeModelEvent = function(model, view, event, fn) {
+    model.on(event, fn, view);
+    view._modelBindings.push({
+        model: model,
+        event: event,
+        fn: fn
+    });
+}
+
 var setAttr = function(model, attr, val, options, context, config) {
     if (config.onSet) {
         val = applyViewFn(context, config.onSet, val, config);
@@ -161,10 +168,16 @@ var setAttr = function(model, attr, val, options, context, config) {
     model.set(attr, val, options);
 };
 
-var getAttr = function(model, attr, config, context) {
+var getAttr = function(model, attr, config, context, event) {
     var val, 
         retrieveVal = function(field) {
-            var retrieved = config.escape ? Y.Escape.html(model.get(field)) : model.get(field);
+            var retrieved;
+            if (event && field === event.attrName) {
+                retrieved = config.escape ? Y.Escape.html(event.newVal) : event.newVal;
+            } else {
+                retrieved = config.escape ? Y.Escape.html(model.get(field)) : model.get(field);
+            }
+
             return Y.Lang.isUndefined(retrieved) || Y.Lang.isNull(retrieved) ? '' : retrieved;
         };
 
@@ -178,17 +191,22 @@ var getConfiguration = function($el, binding) {
         updateModel: false,
         updateView: true,
         updateMethod: 'text',
-        update: function($el, val, m, opts) { $el[opts.updateMethod](val); },
-        getVal: function($el, e, opts) { return $el[opts.updateMethod](); }
+        update: function($el, val, m, opts) { $el.set(opts.updateMethod, val); },
+        getVal: function($el, e, opts) { return $el.get(opts.updateMethod); }
     }];
+
     Y.Array.each(DataStick._handlers, function(handler) {
-        if ($el.test(handler.selector)) {
+        if ($el.item(0).test(handler.selector)) {
             handlers.push(handler);
         }
     });
 
     handlers.push(binding);
-    var config = Y.mix.apply(Y, handlers);
+
+    var config = Y.Array.reduce(handlers, {}, function(prev, curr) {
+        return Y.mix(prev, curr, true);
+    });
+
     delete config.selector;
     return config;
 }
@@ -267,14 +285,14 @@ var updateViewBindEl = function(view, $el, config, val, model, isInitializing) {
 
 DataStick.addHandler([{
     selector: '[contenteditable="true"]',
-    updateMethod: 'html',
+    updateMethod: 'innerHTML',
     events: ['keyup', 'change', 'paste', 'cut']
 }, {
     selector: 'input',
     events: ['keyup', 'change', 'paste', 'cut'],
-    update: function($el, val) { $el.set('value', val); },
+    update: function($el, val) { $el.item(0).set('value', val); },
     getVal: function($el) {
-        var val = $el.get('value');
+        var val = $el.item(0).get('value');
         if ($el.test('[type="number"]')) {
             return val == null ? val : Number(val);
         } else {
