@@ -79,9 +79,9 @@ DataStick.prototype = {
 
             if (modelAttr) {
                 Y.Array.each(config.events || [], function (type) {
-                    var event = type + namespace,
+                    var event = type, // Need to fix to work with YUI prefixes
                         method = function(event) {
-                            var val = config.getVal.call(self, $el, event, config);
+                            var val = config.getVal.call(self, container, event, config);
                             if (evaluateBoolean(self, config.updateModel, val, config)) {
                                 setAttr(model, modelAttr, val, options, self, config);
                             }
@@ -90,7 +90,7 @@ DataStick.prototype = {
                     if (selector === '') {
                         self.get('container').on(event, method);
                     } else {
-                        self.get('container').on(event, selector, method);
+                        self.get('container').delegate(event, method, selector)
                     }
                 });
 
@@ -293,7 +293,7 @@ DataStick.addHandler([{
     update: function($el, val) { $el.item(0).set('value', val); },
     getVal: function($el) {
         var val = $el.item(0).get('value');
-        if ($el.test('[type="number"]')) {
+        if ($el.item(0).test('[type="number"]')) {
             return val == null ? val : Number(val);
         } else {
             return val;
