@@ -1,18 +1,18 @@
-function DataStick() {
-    _handlers: [],
+function DataStick() {}
 
-    addHandler: function(handlers) {
-        handlers = Y.Array.map(Y.Array.flatten([handlers]), function(handler) {
-            return Y.mix({
-                updateModel: true,
-                updateView: true,
-                updateMethod: 'text'
-            }, handler);
-        });
+DataStick._handlers = [];
 
-        this._handlers = this._handlers.concat(handlers);
-    }
-}
+DataStick.addHandler = function(handlers) {
+    handlers = Y.Array.map(Y.Array.flatten([handlers]), function(handler) {
+        return Y.mix({
+            updateModel: true,
+            updateView: true,
+            updateMethod: 'text'
+        }, handler);
+    });
+
+    this._handlers = this._handlers.concat(handlers);
+};
 
 DataStick.prototype = {
     _modelBindings: null,
@@ -31,7 +31,7 @@ DataStick.prototype = {
             return b;
         });
 
-        this.get('container').detach('stick' + (model ? ':' + model.get('clientId') : ''))
+        this.get('container').detach('stick' + (model ? ':' + model.get('clientId') : ''));
     },
 
     bindAttrs: function(optionalModel, optionalBindings) {
@@ -46,18 +46,20 @@ DataStick.prototype = {
 
         this.unbindAttrs(optionalModel);
 
-        Y.Array.each(Y.Object.keys(bindings, function(selector) {
+        Y.Array.each(Y.Object.keys(bindings), function(selector) {
             var container, options, modelAttr, config,
                 binding = bindings[selector] || {},
                 bindKey = Y.guid();
 
             if (selector != 'container') {
-                container = this.get('container').all(selector);
-                if (container.isEmpty()) return;
+                container = self.get('container').all(selector);
             } else {
-                container = this.get('container');
+                container = Y.NodeList(self.get('container'));
                 selector = '';
-                if (!container) return;
+            }
+                
+            if (container.isEmpty()) {
+                return;
             }
 
             if (Y.Lang.isString(binding)) {
@@ -76,11 +78,11 @@ DataStick.prototype = {
 
             if (modelAttr) {
                 Y.Array.each(config.events || [], function (type) {
-                    var event = type + namespace;
-                    var method = function(event) {
+                    var event = type + namespace,
+                        method = function(event) {
                         if (evaluateBoolean(self, config.updateModel, 
                                             val, config)) {
-                            setAttr(model, modelAttr, val, options, 
+                            setAttr(model, modelAttr, val, options,
                                     self, config);
                         }
                     };
@@ -119,14 +121,14 @@ DataStick.prototype = {
             }
         }
     }
-}
+};
 
 /* Utility functions */
 
 var evaluatePath = function(obj, path) {
     var parts = (path || '').split('.');
-    var result = Y.Array.reduce(parts, obj, function(memo, i) {return memo[i];};
-    return result == obj : result;
+    var result = Y.Array.reduce(parts, obj, function(memo, i) {return memo[i]; });
+    return result == null ? obj : result;
 };
 
 var applyViewFn = function(view, fn) {
@@ -160,13 +162,13 @@ var setAttr = function(model, attr, val, options, context, config) {
 };
 
 var getAttr = function(model, attr, config, context) {
-    var val, retrieveVal = function(field) {
-        var retrieved = config.escape ? Y.Escape.html(model.get(field) :
-                                        model.get(field);
-        return Y.Lang.isUndefined(retrieved) ? '' : retrieved;
-    };
-    val = Y.Lang.isArray(attr) ? Y.Array.map(attr, retrieveVal) :
-                                 retrieveVal(attr);
+    var val, 
+        retrieveVal = function(field) {
+            var retrieved = config.escape ? Y.Escape.html(model.get(field)) : model.get(field);
+            return Y.Lang.isUndefined(retrieved) || Y.Lang.isNull(retrieved) ? '' : retrieved;
+        };
+
+    val = Y.Lang.isArray(attr) ? Y.Array.map(attr, retrieveVal) : retrieveVal(attr);
 
     return config.onGet ? applyViewFn(context, config.onGet, val, config) : val;
 };
@@ -200,8 +202,22 @@ var initializeAttributes = function(view, $el, config, model, modelAttr) {
         var lastClass = '',
             observed = attrConfig.observe || (attrConfig.observe = modelAttr),
             updateAttr = function() {
-                var updateType = Y.Array.indexOf(props, attrConfig.name, true) 
+                var isProperty = Y.Array.indexOf(props, attrConfig.name, true) > -1,
+                    updateType = isProperty ? 'prop' : 'attr',
+                    val = getAttr(model, observed, attrConfig, view);
+
+                if (attrConfig.name === 'class') {
+                    $el.removeClass(lastClass).addClass(val);
+                    lastClass = val;
+                } else {
+                    $el[updateType](attrConfig.name, val); 
+                }
             };
+            
+        Y.Array.each(Y.Array.flatten([observed]), function(attr) {
+            observeModelEvent(model, view, attr + 'Change', updateAttr);
+        });
+        updateAttr();
     });
 }
 
@@ -265,6 +281,64 @@ DataStick.addHandler([{
             return val;
         }
     }
-}]);
+}, {
+        selector: 'input[type="radio"]',
+        events: ['change'],
+        update: function($el, val) {
+            $el.filter('[value="' + val + '"]').set('checked', true);
+        },
+        getVal: function($el) {
+            return $el.filter(function(option) {
+                return option.checked;
+            }).item(0).get('value');
+        }
+    }, {
+        selector: 'input[type="checkbox"]',
+        events: ['change'],
+        update: function($el, val, model, options) {
+            if ($el.size() > 1) {
+                Y.Array.each($el, function(el) {
+                    if (Y.Array.indexOf(val, Y.one(el).get('value')) > -1) {
+                        Y.one(el).set('checked', true);
+                    } else {
+                        Y.one(el).set('checked', false);
+                    }
+                });
+            } else {
+                if (Y.Lang.isBoolean(val)) {
+                    $el.item(0).set('checked', val);
+                } else {
+                    $el.item(0).set('checked', val == $el.item(0).get('value'));
+                }
+            }
+        },
+        getVal: function($el) {
+            var val;
+            if ($el.size() > 1) {
+                val = [];
+                $el.each(function(node) {
+                    if (node.get('checked')) {
+                        val.push(node.get('value'));
+                    }
+                });
+            } else {
+                var node = $el.item(0), 
+                    boxval;
+
+                val = node.get('checked');
+                boxval = node.get('value');
+
+                if (boxval != 'on' && boxval != null) {
+                    if (val) {
+                        val = node.get('value');
+                    } else {
+                        val = null;
+                    }
+                }
+            }
+            return val;
+        }
+    }
+]);
 
 Y.namespace('DataBind').Stick = DataStick;
