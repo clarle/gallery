@@ -7,3 +7,7 @@ Available modules
 ### ModelSync.Local
 
 ### ModelSync.Socket
+
+### DataBind.Stick
+
+### RapidSelect
